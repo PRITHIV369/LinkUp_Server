@@ -75,7 +75,7 @@ app.post('/api/top-profiles', async (req, res) => {
     if (!loggedInUser) {
       return res.status(400).json({ message: 'User not found' });
     }
-    const response = await axios.post('http://localhost:5000/predict', {
+    const response = await axios.post('https://linkup-ml.onrender.com/predict', {
       interests: loggedInUser.interests
     }, {
       headers: {
