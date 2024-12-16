@@ -19,15 +19,17 @@ mongoose.connect('mongodb+srv://theprithivraj:h1h2h3h4@prithiv.xaz8u.mongodb.net
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.log('Error connecting to MongoDB: ', err));
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/'); 
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
-
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      console.log('Uploading to uploads folder');
+      cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+      console.log('Saving file:', file.originalname);
+      cb(null, Date.now() + '-' + file.originalname);
+    },
+  });
+  
 const upload = multer({ storage });
 
 app.post('/createUser', upload.single('profilePic'), async (req, res) => {
