@@ -40,7 +40,7 @@ app.post('/createUser', upload.single('profilePic'), async (req, res) => {
       interests: req.body.interests.split(','),
       bio: req.body.bio,
       personality: req.body.personality,
-      profilePic: req.file ? req.file.path : null, 
+      profilePic: req.file.path, 
     });
     await user.save();
     res.status(200).json({ message: 'User created successfully', user });
