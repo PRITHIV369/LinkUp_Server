@@ -13,19 +13,26 @@ const port = 4000;
 app.use(express.json());
 app.use(cors());
 app.use(bodyParser.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 mongoose.connect('mongodb+srv://theprithivraj:h1h2h3h4@prithiv.xaz8u.mongodb.net/LinkUpDB?retryWrites=true&w=majority&appName=prithiv', { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.log('Error connecting to MongoDB: ', err));
-const storage = multer.memoryStorage();
+
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      console.log('Uploading to uploads folder');
+      cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+      console.log('Saving file:', file.originalname);
+      cb(null, Date.now() + '-' + file.originalname);
+    },
+  });
+  
 const upload = multer({ storage });
-const IMGBB_API_KEY = 'c0ef56ccca986fa61939b6ef12edfd14';
+
 app.post('/createUser', upload.single('profilePic'), async (req, res) => {
   try {
-    const imageBuffer = req.file.buffer.toString('base64');
-    const imgbbResponse = await axios.post(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-      image: imageBuffer,
-    });
-    const imageUrl = imgbbResponse.data.data.url; 
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
     const user = new User({
       name: req.body.name,
@@ -34,12 +41,11 @@ app.post('/createUser', upload.single('profilePic'), async (req, res) => {
       interests: req.body.interests.split(','),
       bio: req.body.bio,
       personality: req.body.personality,
-      profilePic: imageUrl,
+      profilePic: req.file.path, 
     });
     await user.save();
     res.status(200).json({ message: 'User created successfully', user });
   } catch (error) {
-    console.error('Error creating user:', error);
     res.status(400).json({ message: 'Error creating user', error });
   }
 });
@@ -85,6 +91,7 @@ app.post('/api/top-profiles', async (req, res) => {
     res.status(500).json({ message: 'Internal server error', error });
   }
 });
+
 app.get('/api/profile/:name', async (req, res) => {
   const { name } = req.params;
   try {
