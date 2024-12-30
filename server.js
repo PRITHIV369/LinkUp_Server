@@ -41,7 +41,7 @@ app.post('/createUser', upload.single('profilePic'), async (req, res) => {
 
     console.log('Flask API response:', response.data);
 
-    if (response.data && response.data.imageUrl) {
+    if (response.data && response.data.image_url) {
       const user = new User({
         name: req.body.name,
         email: req.body.email,
@@ -49,7 +49,7 @@ app.post('/createUser', upload.single('profilePic'), async (req, res) => {
         interests: req.body.interests.split(','),
         bio: req.body.bio,
         personality: req.body.personality,
-        profilePic: response.data.imageUrl,
+        profilePic: response.data.image_url,
       });
 
       await user.save();
