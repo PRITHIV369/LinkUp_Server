@@ -25,13 +25,21 @@ const upload = multer({ storage });
 
 app.post('/createUser', upload.single('profilePic'), async (req, res) => {
   try {
+    console.log('Request body:', req.body);
+    console.log('Uploaded file:', req.file);
+    if (!req.file) {
+      return res.status(400).json({ message: 'Profile picture is required' });
+    }
+
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
-    const response = await axios.post('https://linkup-ml.onrender.com/upload_image/', req.file.buffer, {
-      headers: {
-        'Content-Type': req.file.mimetype, 
-      },
-    });
+    const response = await axios.post(
+      'https://linkup-ml.onrender.com/upload_image/',
+      req.file.buffer,
+      { headers: { 'Content-Type': req.file.mimetype } }
+    );
+
+    console.log('Flask API response:', response.data);
 
     if (response.data && response.data.imageUrl) {
       const user = new User({
@@ -45,13 +53,13 @@ app.post('/createUser', upload.single('profilePic'), async (req, res) => {
       });
 
       await user.save();
-      res.status(200).json({ message: 'User created successfully', user });
+      return res.status(200).json({ message: 'User created successfully', user });
     } else {
-      res.status(400).json({ message: 'Image upload failed' });
+      return res.status(400).json({ message: 'Image upload failed' });
     }
   } catch (error) {
-    console.error('Error creating user:', error);
-    res.status(400).json({ message: 'Error creating user', error });
+    console.error('Error creating user:', error.stack || error);
+    return res.status(500).json({ message: 'Internal server error', error });
   }
 });
 
