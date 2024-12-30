@@ -6,49 +6,55 @@ const cors = require('cors');
 const bcrypt = require('bcrypt');
 const User = require('./models/User');
 const axios = require('axios');
-const path = require('path'); 
+const path = require('path');
+const fs = require('fs');
 const app = express();
 const port = 4000;
 
 app.use(express.json());
 app.use(cors());
 app.use(bodyParser.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 mongoose.connect('mongodb+srv://theprithivraj:h1h2h3h4@prithiv.xaz8u.mongodb.net/LinkUpDB?retryWrites=true&w=majority&appName=prithiv', { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.log('Error connecting to MongoDB: ', err));
 
-  const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      console.log('Uploading to uploads folder');
-      cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-      console.log('Saving file:', file.originalname);
-      cb(null, Date.now() + '-' + file.originalname);
-    },
-  });
-  
+const storage = multer.memoryStorage(); 
+
 const upload = multer({ storage });
 
 app.post('/createUser', upload.single('profilePic'), async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
-    const user = new User({
-      name: req.body.name,
-      email: req.body.email,
-      password: hashedPassword,
-      interests: req.body.interests.split(','),
-      bio: req.body.bio,
-      personality: req.body.personality,
-      profilePic: req.file.path, 
+
+    const response = await axios.post('https://linkup-ml.onrender.com/upload_image/', req.file.buffer, {
+      headers: {
+        'Content-Type': req.file.mimetype, 
+      },
     });
-    await user.save();
-    res.status(200).json({ message: 'User created successfully', user });
+
+    if (response.data && response.data.imageUrl) {
+      const user = new User({
+        name: req.body.name,
+        email: req.body.email,
+        password: hashedPassword,
+        interests: req.body.interests.split(','),
+        bio: req.body.bio,
+        personality: req.body.personality,
+        profilePic: response.data.imageUrl,
+      });
+
+      await user.save();
+      res.status(200).json({ message: 'User created successfully', user });
+    } else {
+      res.status(400).json({ message: 'Image upload failed' });
+    }
   } catch (error) {
+    console.error('Error creating user:', error);
     res.status(400).json({ message: 'Error creating user', error });
   }
 });
+
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -69,6 +75,7 @@ app.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Internal server error', error });
   }
 });
+
 app.post('/api/top-profiles', async (req, res) => {
   const { userId } = req.body;
   try {
@@ -105,6 +112,7 @@ app.get('/api/profile/:name', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 const updateUserPasswords = async () => {
   const users = await User.find();
   for (let user of users) {
@@ -115,6 +123,7 @@ const updateUserPasswords = async () => {
   }
   console.log('Passwords updated successfully');
 };
+
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server running`);
 });
