@@ -8,6 +8,7 @@ const User = require('./models/User');
 const axios = require('axios');
 const app = express();
 const port = 4000;
+const nodemailer = require("nodemailer");
 const API_KEY = 'c0ef56ccca986fa61939b6ef12edfd14';
 app.use(express.json());
 app.use(cors());
@@ -20,6 +21,14 @@ mongoose.connect('mongodb+srv://theprithivraj:h1h2h3h4@prithiv.xaz8u.mongodb.net
 const storage = multer.memoryStorage(); 
 
 const upload = multer({ storage });
+
+const transporter = nodemailer.createTransport({
+  service: "gmail", 
+  auth: {
+    user: "theprithivraj@gmail.com", 
+    pass: "revw iely latz khae",  
+  },
+});
 
 const uploadToImgBB = async (imageBuffer, mimetype) => {
   try {
@@ -137,6 +146,30 @@ app.get('/api/profile/:name', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+app.post("/api/send-email", async (req, res) => {
+  const { to, subject, message } = req.body;
+
+  if (!to || !subject || !message) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  const mailOptions = {
+    from: "theprithivraj@gmail.com", 
+    to: to,
+    subject: subject,
+    text: message,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return res.status(200).json({ message: "Email sent successfully!" });
+  } catch (error) {
+    console.error("Error sending email:", error);
+    return res.status(500).json({ error: "Failed to send email" });
+  }
+});
+
 
 const updateUserPasswords = async () => {
   const users = await User.find();
